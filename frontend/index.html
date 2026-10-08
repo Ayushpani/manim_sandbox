@@ -14,37 +14,66 @@
   * { box-sizing: border-box; }
   html, body { margin: 0; height: 100%; background: var(--bg); color: var(--text);
     font: 14px/1.4 system-ui, -apple-system, "Segoe UI", sans-serif; }
-  header { display: flex; flex-wrap: wrap; align-items: center; gap: 12px;
+  body { display: flex; flex-direction: column; }
+  header { display: flex; flex-wrap: wrap; align-items: center; gap: 10px;
     padding: 10px 16px; border-bottom: 1px solid var(--border); background: var(--panel); }
-  h1 { font-size: 16px; margin: 0 8px 0 0; color: var(--accent); }
+  h1 { font-size: 16px; margin: 0 6px 0 0; color: var(--accent); white-space: nowrap; }
   .seg { display: inline-flex; border: 1px solid var(--border); border-radius: 8px; overflow: hidden; }
   .seg button { background: none; border: 0; color: var(--muted); padding: 6px 12px; cursor: pointer; font: inherit; }
   .seg button.on { background: var(--accent); color: #0b0c0e; font-weight: 600; }
-  select, input { background: var(--bg); color: var(--text); border: 1px solid var(--border);
-    border-radius: 8px; padding: 6px 8px; font: inherit; }
+  select { background: var(--bg); color: var(--text); border: 1px solid var(--border);
+    border-radius: 8px; padding: 6px 8px; font: inherit; max-width: 240px; }
+  .btn { background: var(--bg); color: var(--text); border: 1px solid var(--border); border-radius: 8px;
+    padding: 6px 12px; font: inherit; cursor: pointer; }
+  .btn:hover { border-color: var(--muted); }
   #render { background: var(--ok); color: #0b0c0e; border: 0; border-radius: 8px;
     padding: 7px 18px; font: inherit; font-weight: 700; cursor: pointer; }
   #render:disabled { opacity: .5; cursor: wait; }
   .hint { color: var(--muted); font-size: 12px; }
-  main { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); height: calc(100% - 55px); }
-  #editorWrap { border-right: 1px solid var(--border); min-height: 0; }
+  .spacer { flex: 1; }
+  main { flex: 1; display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); min-height: 0; }
+  #left { display: flex; flex-direction: column; border-right: 1px solid var(--border); min-height: 0; }
+  #editorWrap { flex: 1; min-height: 0; position: relative; }
+  #editorWrap.drag::after { content: "Drop .py to open, or images/SVG/audio to attach"; position: absolute; inset: 0;
+    display: grid; place-items: center; background: #58c4dd33; border: 2px dashed var(--accent); z-index: 9; font-weight: 600; }
   .CodeMirror { height: 100%; font-size: 14px; }
-  #right { display: flex; flex-direction: column; min-height: 0; padding: 16px; gap: 12px; }
-  #stage { flex: 1 1 auto; min-height: 200px; display: flex; align-items: center; justify-content: center;
-    background: #000; border-radius: 10px; overflow: hidden; }
-  video { max-width: 100%; max-height: 100%; }
-  #placeholder { color: var(--muted); text-align: center; padding: 20px; }
+  .cm-error-line { background: #fc625533 !important; }
+  #assets { display: flex; flex-wrap: wrap; gap: 6px; padding: 8px 12px; border-top: 1px solid var(--border); }
+  #assets:empty { display: none; }
+  .chip { display: inline-flex; align-items: center; gap: 6px; background: var(--panel); border: 1px solid var(--border);
+    border-radius: 999px; padding: 2px 4px 2px 10px; font-size: 12px; }
+  .chip button { background: none; border: 0; color: var(--muted); cursor: pointer; font-size: 14px; padding: 0 6px; }
+  #right { display: flex; flex-direction: column; min-height: 0; padding: 14px; gap: 10px; overflow: auto; }
+  #stage { flex: 1 1 auto; min-height: 220px; display: flex; align-items: center; justify-content: center;
+    background: #000; border-radius: 10px; overflow: hidden; position: relative; }
+  #stage video, #stage img { max-width: 100%; max-height: 100%; display: block; }
+  #placeholder { color: var(--muted); text-align: center; padding: 20px; max-width: 420px; }
+  #placeholder b { color: var(--text); }
+  #spinner { position: absolute; inset: 0; display: none; place-items: center; background: #000a; }
+  #spinner.on { display: grid; }
+  #spinner::before { content: ""; width: 42px; height: 42px; border-radius: 50%;
+    border: 4px solid #ffffff22; border-top-color: var(--accent); animation: spin 0.8s linear infinite; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  #outputs { display: flex; gap: 6px; flex-wrap: wrap; }
+  #outputs:empty { display: none; }
+  #outputs button { background: var(--panel); border: 1px solid var(--border); color: var(--text);
+    border-radius: 8px; padding: 4px 10px; cursor: pointer; font: inherit; font-size: 13px; }
+  #outputs button.on { border-color: var(--accent); color: var(--accent); }
   #statusRow { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
   #status { font-weight: 600; }
-  #status.err { color: var(--err); } #status.ok { color: var(--ok); }
+  #status.ok { color: var(--ok); }
   #download { color: var(--accent); display: none; }
+  #errorBox { display: none; background: #fc625518; border: 1px solid #fc625577; color: #ffb3ad;
+    border-radius: 8px; padding: 10px 12px; font: 13px/1.45 ui-monospace, Consolas, monospace; white-space: pre-wrap; }
+  #errorBox a { color: var(--accent); cursor: pointer; }
   details { background: var(--panel); border: 1px solid var(--border); border-radius: 8px; }
   summary { padding: 6px 10px; cursor: pointer; color: var(--muted); }
-  pre#log { margin: 0; padding: 10px; max-height: 260px; overflow: auto; font-size: 12px; white-space: pre-wrap; }
-  @media (max-width: 800px) {
-    main { grid-template-columns: 1fr; height: auto; }
-    #editorWrap { height: 55vh; border-right: 0; border-bottom: 1px solid var(--border); }
+  pre#log { margin: 0; padding: 10px; max-height: 300px; overflow: auto; font-size: 12px; white-space: pre; }
+  @media (max-width: 860px) {
+    main { grid-template-columns: 1fr; }
+    #left { height: 55vh; border-right: 0; border-bottom: 1px solid var(--border); }
     #stage { min-height: 260px; }
+    .hint { display: none; }
   }
 </style>
 </head>
@@ -52,26 +81,38 @@
 <header>
   <h1>Manim Sandbox</h1>
   <div class="seg" id="quality">
-    <button data-v="preview" class="on" title="480p 15fps, quick">Preview</button>
-    <button data-v="final" title="1080p 60fps">Final</button>
+    <button data-v="preview" class="on" title="480p 15fps, fast">Preview</button>
+    <button data-v="final" title="1080p 60fps, for upload">Final</button>
   </div>
   <div class="seg" id="orientation">
     <button data-v="landscape" class="on" title="16:9 for YouTube">Landscape</button>
     <button data-v="vertical" title="9:16 for Reels / Shorts / TikTok">Vertical</button>
   </div>
-  <select id="scene" title="Scene to render"></select>
+  <select id="scene" title="Which scene to render"></select>
+  <button class="btn" id="filesBtn" title="Open a .py file, or attach images / SVGs / audio your code uses">Files…</button>
+  <input type="file" id="fileInput" multiple hidden>
   <button id="render">Render ▶</button>
   <span class="hint">Ctrl+Enter</span>
 </header>
 <main>
-  <div id="editorWrap"><textarea id="code"></textarea></div>
+  <section id="left">
+    <div id="editorWrap"><textarea id="code"></textarea></div>
+    <div id="assets"></div>
+  </section>
   <section id="right">
-    <div id="stage"><div id="placeholder">Your video appears here.</div></div>
+    <div id="stage">
+      <div id="placeholder">Paste any <b>Manim Community</b> code on the left and press <b>Render</b>.<br><br>
+        Files with several scenes get a dropdown, including <b>All scenes</b>.
+        Using an image, SVG or sound? Attach it with <b>Files…</b> and refer to it by name.</div>
+      <div id="spinner"></div>
+    </div>
+    <div id="outputs"></div>
     <div id="statusRow">
       <span id="status">Ready.</span>
-      <a id="download" href="#">Download MP4</a>
+      <a id="download" href="#">Download</a>
     </div>
-    <details id="logBox"><summary>Render log</summary><pre id="log"></pre></details>
+    <div id="errorBox"></div>
+    <details id="logBox"><summary>Full render log</summary><pre id="log"></pre></details>
   </section>
 </main>
 
@@ -92,6 +133,7 @@ class Intro(Scene):
         self.play(Create(box))
         self.wait(1)
 `;
+const ALL = "__all__";
 
 const $ = (id) => document.getElementById(id);
 const store = {
@@ -99,6 +141,7 @@ const store = {
   set(k, v) { try { localStorage.setItem(k, v); } catch {} },
 };
 
+// ---------- Editor ----------
 const editor = window.CodeMirror ? CodeMirror.fromTextArea($("code"), {
   mode: "python", theme: "material-darker", lineNumbers: true, indentUnit: 4,
   tabSize: 4, indentWithTabs: false,
@@ -121,11 +164,23 @@ function plainEditor(ta) {
     getValue: () => ta.value,
     setValue: (v) => { ta.value = v; },
     on: (_ev, fn) => ta.addEventListener("input", fn),
+    jumpToLine(n) {
+      const start = ta.value.split("\n").slice(0, n - 1).join("\n").length + (n > 1 ? 1 : 0);
+      ta.focus(); ta.setSelectionRange(start, ta.value.indexOf("\n", start) === -1 ? ta.value.length : ta.value.indexOf("\n", start));
+    },
+    markLine() {}, clearMark() {},
   };
+}
+if (window.CodeMirror) {
+  let marked = null;
+  editor.markLine = (n) => { editor.clearMark(); marked = editor.addLineClass(n - 1, "background", "cm-error-line"); };
+  editor.clearMark = () => { if (marked) editor.removeLineClass(marked, "background", "cm-error-line"); marked = null; };
+  editor.jumpToLine = (n) => { editor.focus(); editor.setCursor({ line: n - 1, ch: 0 });
+    editor.scrollIntoView({ line: n - 1, ch: 0 }, 120); };
 }
 editor.setValue(store.get("code", STARTER));
 
-// Toggle groups
+// ---------- Toggles ----------
 const state = { quality: store.get("quality", "preview"), orientation: store.get("orientation", "landscape") };
 for (const group of ["quality", "orientation"]) {
   const el = $(group);
@@ -137,7 +192,7 @@ for (const group of ["quality", "orientation"]) {
   sync();
 }
 
-// Optional access token (only when the server has ACCESS_TOKEN set)
+// ---------- API (with optional access token) ----------
 let token = store.get("token", "");
 async function api(path, opts = {}) {
   opts.headers = { ...(opts.headers || {}), "X-Access-Token": token };
@@ -150,68 +205,150 @@ async function api(path, opts = {}) {
   }
   return res;
 }
+const withToken = (url, extra = "") => {
+  const params = [token && `token=${encodeURIComponent(token)}`, extra].filter(Boolean).join("&");
+  return params ? `${url}?${params}` : url;
+};
 
-// Scene picker: refresh shortly after typing stops
+// ---------- Scene picker ----------
 let sceneTimer;
 async function refreshScenes() {
   store.set("code", editor.getValue());
   const res = await api("/api/scenes", { method: "POST", headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ code: editor.getValue() }) });
-  if (!res.ok) return;
+    body: JSON.stringify({ code: editor.getValue() }) }).catch(() => null);
+  if (!res || !res.ok) return [];
   const { scenes } = await res.json();
-  const sel = $("scene"), prev = sel.value;
+  const sel = $("scene"), prev = sel.value || store.get("scene", "");
   sel.innerHTML = "";
   for (const s of scenes) sel.add(new Option(s, s));
-  if (scenes.includes(prev)) sel.value = prev;
-  sel.style.display = scenes.length > 1 ? "" : "none";
+  if (scenes.length > 1) sel.add(new Option(`All scenes (${scenes.length})`, ALL));
+  if ([...sel.options].some(o => o.value === prev)) sel.value = prev;
+  sel.style.display = scenes.length ? "" : "none";
+  return scenes;
 }
-editor.on("change", () => { clearTimeout(sceneTimer); sceneTimer = setTimeout(refreshScenes, 600); });
+$("scene").addEventListener("change", () => store.set("scene", $("scene").value));
+editor.on("change", () => { clearTimeout(sceneTimer); sceneTimer = setTimeout(refreshScenes, 500); });
 refreshScenes();
 
-function setStatus(text, cls = "") { const s = $("status"); s.textContent = text; s.className = cls; }
+// ---------- Attached files (images, SVG, audio) and opening .py files ----------
+const assets = new Map();  // name -> base64
+function showAssets() {
+  const box = $("assets"); box.innerHTML = "";
+  for (const name of assets.keys()) {
+    const chip = document.createElement("span"); chip.className = "chip"; chip.textContent = name;
+    const x = document.createElement("button"); x.textContent = "×"; x.title = "Remove";
+    x.onclick = () => { assets.delete(name); showAssets(); };
+    chip.append(x); box.append(chip);
+  }
+}
+async function addFiles(files) {
+  for (const f of files) {
+    if (/\.py$/i.test(f.name)) { editor.setValue(await f.text()); refreshScenes(); continue; }
+    const data = await new Promise((ok) => { const r = new FileReader(); r.onload = () => ok(r.result.split(",")[1] || ""); r.readAsDataURL(f); });
+    assets.set(f.name, data);
+  }
+  showAssets();
+}
+$("filesBtn").onclick = () => $("fileInput").click();
+$("fileInput").onchange = (e) => { addFiles(e.target.files); e.target.value = ""; };
+const wrap = $("editorWrap");
+wrap.addEventListener("dragover", (e) => { if (e.dataTransfer.types.includes("Files")) { e.preventDefault(); wrap.classList.add("drag"); } });
+wrap.addEventListener("dragleave", () => wrap.classList.remove("drag"));
+wrap.addEventListener("drop", (e) => { if (!e.dataTransfer.files.length) return;
+  e.preventDefault(); wrap.classList.remove("drag"); addFiles(e.dataTransfer.files); });
 
+// ---------- Results ----------
+function setStatus(text, cls = "") { const s = $("status"); s.textContent = text; s.className = cls; }
+function showError(msg, line) {
+  const box = $("errorBox");
+  if (!msg) { box.style.display = "none"; editor.clearMark(); return; }
+  box.textContent = msg;
+  if (line) {
+    editor.markLine(line);
+    const a = document.createElement("a"); a.textContent = `  → go to line ${line}`;
+    a.onclick = () => editor.jumpToLine(line); box.append(a);
+  }
+  box.style.display = "block";
+}
+function showOutput(o) {
+  const stage = $("stage"), spinner = $("spinner");
+  stage.innerHTML = ""; stage.append(spinner);
+  const src = withToken(o.url);
+  const el = o.kind === "video"
+    ? Object.assign(document.createElement("video"), { src, controls: true, autoplay: true, loop: true, playsInline: true, muted: false })
+    : Object.assign(document.createElement("img"), { src, alt: o.scene });
+  stage.prepend(el);
+  const dl = $("download");
+  dl.href = withToken(o.url, "download=true");
+  dl.textContent = `Download ${o.scene}.${o.kind === "video" ? "mp4" : "png"}`;
+  dl.style.display = "";
+  document.querySelectorAll("#outputs button").forEach(b => b.classList.toggle("on", b.dataset.url === o.url));
+}
+function clearStage(message) {
+  const stage = $("stage"), spinner = $("spinner");
+  stage.innerHTML = `<div id="placeholder"></div>`; stage.append(spinner);
+  $("placeholder").textContent = message;
+  $("download").style.display = "none";
+}
+function showOutputs(outputs) {
+  const bar = $("outputs"); bar.innerHTML = "";
+  if (outputs.length > 1) for (const o of outputs) {
+    const b = document.createElement("button");
+    b.textContent = `${o.kind === "video" ? "▶" : "▣"} ${o.scene}`; b.dataset.url = o.url;
+    b.onclick = () => showOutput(o); bar.append(b);
+  }
+  if (outputs.length) showOutput(outputs[0]);
+}
+
+// ---------- Render ----------
 let polling = null;
 async function render() {
   if ($("render").disabled) return;
-  store.set("code", editor.getValue());
   $("render").disabled = true;
+  showError("");
   $("download").style.display = "none";
   setStatus("Submitting…");
   clearTimeout(sceneTimer);
-  await refreshScenes();  // the picker may lag behind recent edits
-  const res = await api("/api/render", {
-    method: "POST", headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ code: editor.getValue(), scene: $("scene").value || "", ...state }),
-  });
+  const scenes = await refreshScenes();  // the picker may lag behind recent edits
+  const picked = $("scene").value;
+  const body = {
+    code: editor.getValue(), ...state,
+    scenes: picked === ALL ? scenes : picked ? [picked] : [],
+    assets: [...assets].map(([name, data]) => ({ name, data })),
+  };
+  const res = await api("/api/render", { method: "POST", headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(body) }).catch(() => null);
+  if (!res) { done(); setStatus(""); showError("Can't reach the sandbox server. Is it still running?"); return; }
   const data = await res.json().catch(() => ({}));
-  if (!res.ok) { setStatus(data.detail || `Error ${res.status}`, "err"); $("render").disabled = false; return; }
+  if (!res.ok) {
+    const d = data.detail || {};
+    done(); setStatus(""); showError(typeof d === "string" ? d : d.error || `Error ${res.status}`, d.line);
+    return;
+  }
+  $("outputs").innerHTML = "";  // old results belong to the old code
+  $("spinner").classList.add("on");
   poll(data.job_id);
 }
+function done() { clearInterval(polling); $("render").disabled = false; $("spinner").classList.remove("on"); }
 
 function poll(id) {
   clearInterval(polling);
   polling = setInterval(async () => {
-    const res = await api(`/api/jobs/${id}`);
-    if (!res.ok) { clearInterval(polling); setStatus("Lost track of the job.", "err"); $("render").disabled = false; return; }
+    const res = await api(`/api/jobs/${id}`).catch(() => null);
+    if (!res || !res.ok) { done(); showError("Lost track of the render (server restarted?). Press Render again."); return; }
     const j = await res.json();
-    $("log").textContent = j.log;
+    const log = $("log"); log.textContent = j.log; log.scrollTop = log.scrollHeight;
+    const what = j.scenes.length > 1 ? `${j.scenes.length} scenes` : j.scenes[0];
     if (j.status === "queued") setStatus(`Waiting in queue (#${j.queue_position})…`);
-    else if (j.status === "rendering") setStatus(`Rendering ${j.scene} (${j.quality}, ${j.orientation})… ${Math.round(j.elapsed)}s`);
+    else if (j.status === "rendering") setStatus(`Rendering ${what} · ${j.quality} · ${j.orientation} · ${Math.round(j.elapsed)}s`);
     else {
-      clearInterval(polling);
-      $("render").disabled = false;
-      if (j.status === "done") {
-        setStatus(`Done in ${j.elapsed}s`, "ok");
-        const q = token ? `?token=${encodeURIComponent(token)}` : "";
-        const url = `/api/jobs/${id}/video${q}`;
-        $("stage").innerHTML = `<video src="${url}" controls autoplay loop playsinline></video>`;
-        const dl = $("download");
-        dl.href = `${url}${q ? "&" : "?"}download=true`;
-        dl.style.display = "";
-      } else {
-        setStatus(j.error || "Render failed.", "err");
-        $("logBox").open = true;
-        const log = $("log"); log.scrollTop = log.scrollHeight;
+      done();
+      if (j.outputs.length) showOutputs(j.outputs);
+      if (j.status === "done") setStatus(`Done in ${j.elapsed}s`, "ok");
+      else {
+        if (!j.outputs.length) clearStage("No video this time. Fix the error below and render again.");
+        setStatus(j.outputs.length ? `${j.outputs.length} of ${j.scenes.length} scenes rendered` : "");
+        showError(j.error || "Render failed.", j.error_line);
       }
     }
   }, 1000);
@@ -221,8 +358,8 @@ $("render").addEventListener("click", render);
 
 // Warn early if Docker or the image isn't ready
 api("/api/health").then(r => r.json()).then(h => {
-  if (!h.docker) setStatus("Docker isn't reachable. Start Docker Desktop, then reload.", "err");
-  else if (!h.image_pulled) setStatus(`Image not pulled yet. Run: docker pull ${h.image}`, "err");
+  if (!h.docker) showError("Docker isn't reachable. Start Docker Desktop, then reload this page.");
+  else if (!h.image_pulled) showError(`The Manim image isn't downloaded yet. Run:\n  docker pull ${h.image}`);
 }).catch(() => {});
 </script>
 </body>

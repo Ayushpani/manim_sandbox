@@ -45,8 +45,21 @@ Needs Python 3.10+ (https://www.python.org/downloads/; tick "Add python.exe to P
 ./run.sh           # macOS / Linux
 ```
 
-Open **http://localhost:8000**, paste code, press **Render** (or Ctrl+Enter). The first run sets up a `.venv` folder.
-If your file has several scenes, a dropdown appears so you can pick one. Use **Download MP4** to save the result.
+Open **http://localhost:8000**, paste any Manim Community code, press **Render** (or Ctrl+Enter). The first run sets up a `.venv` folder.
+
+What the page handles:
+- **Any scene type:** `Scene`, `ThreeDScene`, `MovingCameraScene`, `ZoomedScene`, and your own base classes.
+- **Several scenes in one file:** pick one from the dropdown, or **All scenes** to render every one and click between them.
+- **Still images:** a scene with no animation (only `self.add`) shows as a PNG.
+- **Your own files:** images, SVGs and sounds. Attach them with **Files…** (or drag them onto the editor), then use them by name: `ImageMobject("photo.png")`, `SVGMobject("logo.svg")`, `self.add_sound("click.wav")`.
+- **Opening a `.py` file:** use **Files…** or drop it onto the editor.
+- **Errors:** you see the one-line cause, e.g. `NameError: name 'grpah' is not defined (line 9)`, with the line highlighted and a link to jump to it. The full log is underneath.
+- **`config` lines at the top of a file:** e.g. `config.background_color = ...`. Leftover `if __name__ == "__main__":` blocks are ignored.
+
+`examples/gallery.py` has 17 scenes from the official Manim gallery. Paste it and pick **All scenes** to see everything working.
+ManimGL code (`from manimlib import *`, the 3Blue1Brown version) is a different library and is rejected with a clear message.
+
+To check a setup end to end, run `python tests/smoke_test.py` while the server is running. It renders every example plus the edge cases.
 
 Alternative: run it fully in Docker with `docker compose up -d --build` (same as Step 4).
 
@@ -58,8 +71,8 @@ Alternative: run it fully in Docker with `docker compose up -d --build` (same as
 | Memory (no extra swap) | 2 GB | `MEMORY_LIMIT` |
 | CPUs | 2 | `CPU_LIMIT` |
 | Max processes | 256 | `PIDS_LIMIT` |
-| Time limit, preview / final | 120 s / 900 s | `PREVIEW_TIMEOUT` / `FINAL_TIMEOUT` |
-| Code size | 100 KB | `MAX_CODE_BYTES` |
+| Time limit per scene, preview / final | 120 s / 1800 s | `PREVIEW_TIMEOUT` / `FINAL_TIMEOUT` |
+| Code size / attached files | 200 KB / 50 MB | `MAX_CODE_BYTES` / `MAX_ASSET_BYTES` |
 | Renders at once / max waiting | 1 / 10 | `MAX_CONCURRENT_RENDERS` / `MAX_QUEUED_JOBS` |
 | Videos kept for | 24 h | `JOB_TTL_HOURS` |
 
@@ -117,7 +130,8 @@ backend/main.py       FastAPI app: API, job queue, cleanup, serves the frontend
 backend/renderer.py   Builds and runs the locked-down `docker run` for one render
 backend/config.py     All limits and settings
 frontend/index.html   Editor (CodeMirror), toggles, video player
-examples/             Test scenes
+examples/             Test scenes (gallery.py = 17 official gallery examples)
+tests/smoke_test.py   End-to-end check against a running server
 scripts/              Step 1 test-render scripts
 run.ps1 / run.sh      Step 2 launchers
 Dockerfile, docker-compose.yml, .env.example   Step 4 deployment
@@ -125,9 +139,9 @@ Dockerfile, docker-compose.yml, .env.example   Step 4 deployment
 
 ### API
 
-- `POST /api/render` `{code, scene?, quality: "preview"|"final", orientation: "landscape"|"vertical"}` returns `{job_id}`
-- `GET /api/jobs/{id}` returns status (`queued`, `rendering`, `done`, `failed`), queue position, error and log
-- `GET /api/jobs/{id}/video[?download=true]` returns the MP4
+- `POST /api/render` `{code, scenes?: [names], quality: "preview"|"final", orientation: "landscape"|"vertical", assets?: [{name, data(base64)}]}` returns `{job_id}`
+- `GET /api/jobs/{id}` returns status (`queued`, `rendering`, `done`, `failed`), queue position, `outputs` (one per scene, video or image), error, error line and log
+- `GET /api/jobs/{id}/files/{Scene}.mp4|png[?download=true]` returns a result file
 - `GET /api/health` reports whether Docker is reachable and the image is pulled
 
 When `ACCESS_TOKEN` is set, send it as the `X-Access-Token` header or `?token=` query parameter.

@@ -1,0 +1,5 @@
+.git
+.venv
+jobs
+examples/media
+**/__pycache__

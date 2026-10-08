@@ -1,0 +1,229 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Manim Sandbox</title>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/codemirror.min.css">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/theme/material-darker.min.css">
+<style>
+  :root {
+    --bg: #121316; --panel: #1b1d22; --border: #2c2f36; --text: #e6e6e6;
+    --muted: #8b9099; --accent: #58c4dd; --ok: #83c167; --err: #fc6255;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; height: 100%; background: var(--bg); color: var(--text);
+    font: 14px/1.4 system-ui, -apple-system, "Segoe UI", sans-serif; }
+  header { display: flex; flex-wrap: wrap; align-items: center; gap: 12px;
+    padding: 10px 16px; border-bottom: 1px solid var(--border); background: var(--panel); }
+  h1 { font-size: 16px; margin: 0 8px 0 0; color: var(--accent); }
+  .seg { display: inline-flex; border: 1px solid var(--border); border-radius: 8px; overflow: hidden; }
+  .seg button { background: none; border: 0; color: var(--muted); padding: 6px 12px; cursor: pointer; font: inherit; }
+  .seg button.on { background: var(--accent); color: #0b0c0e; font-weight: 600; }
+  select, input { background: var(--bg); color: var(--text); border: 1px solid var(--border);
+    border-radius: 8px; padding: 6px 8px; font: inherit; }
+  #render { background: var(--ok); color: #0b0c0e; border: 0; border-radius: 8px;
+    padding: 7px 18px; font: inherit; font-weight: 700; cursor: pointer; }
+  #render:disabled { opacity: .5; cursor: wait; }
+  .hint { color: var(--muted); font-size: 12px; }
+  main { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); height: calc(100% - 55px); }
+  #editorWrap { border-right: 1px solid var(--border); min-height: 0; }
+  .CodeMirror { height: 100%; font-size: 14px; }
+  #right { display: flex; flex-direction: column; min-height: 0; padding: 16px; gap: 12px; }
+  #stage { flex: 1 1 auto; min-height: 200px; display: flex; align-items: center; justify-content: center;
+    background: #000; border-radius: 10px; overflow: hidden; }
+  video { max-width: 100%; max-height: 100%; }
+  #placeholder { color: var(--muted); text-align: center; padding: 20px; }
+  #statusRow { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+  #status { font-weight: 600; }
+  #status.err { color: var(--err); } #status.ok { color: var(--ok); }
+  #download { color: var(--accent); display: none; }
+  details { background: var(--panel); border: 1px solid var(--border); border-radius: 8px; }
+  summary { padding: 6px 10px; cursor: pointer; color: var(--muted); }
+  pre#log { margin: 0; padding: 10px; max-height: 260px; overflow: auto; font-size: 12px; white-space: pre-wrap; }
+  @media (max-width: 800px) {
+    main { grid-template-columns: 1fr; height: auto; }
+    #editorWrap { height: 55vh; border-right: 0; border-bottom: 1px solid var(--border); }
+    #stage { min-height: 260px; }
+  }
+</style>
+</head>
+<body>
+<header>
+  <h1>Manim Sandbox</h1>
+  <div class="seg" id="quality">
+    <button data-v="preview" class="on" title="480p 15fps, quick">Preview</button>
+    <button data-v="final" title="1080p 60fps">Final</button>
+  </div>
+  <div class="seg" id="orientation">
+    <button data-v="landscape" class="on" title="16:9 for YouTube">Landscape</button>
+    <button data-v="vertical" title="9:16 for Reels / Shorts / TikTok">Vertical</button>
+  </div>
+  <select id="scene" title="Scene to render"></select>
+  <button id="render">Render ▶</button>
+  <span class="hint">Ctrl+Enter</span>
+</header>
+<main>
+  <div id="editorWrap"><textarea id="code"></textarea></div>
+  <section id="right">
+    <div id="stage"><div id="placeholder">Your video appears here.</div></div>
+    <div id="statusRow">
+      <span id="status">Ready.</span>
+      <a id="download" href="#">Download MP4</a>
+    </div>
+    <details id="logBox"><summary>Render log</summary><pre id="log"></pre></details>
+  </section>
+</main>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/codemirror.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/mode/python/python.min.js"></script>
+<script>
+const STARTER = `from manim import *
+
+
+class Intro(Scene):
+    def construct(self):
+        title = Text("Hello, Manim!", font_size=64)
+        formula = MathTex(r"e^{i\\pi} + 1 = 0", font_size=72).next_to(title, DOWN, buff=0.8)
+        box = SurroundingRectangle(formula, color=YELLOW, buff=0.25)
+
+        self.play(Write(title))
+        self.play(FadeIn(formula, shift=UP))
+        self.play(Create(box))
+        self.wait(1)
+`;
+
+const $ = (id) => document.getElementById(id);
+const store = {
+  get(k, d) { try { return localStorage.getItem(k) ?? d; } catch { return d; } },
+  set(k, v) { try { localStorage.setItem(k, v); } catch {} },
+};
+
+const editor = window.CodeMirror ? CodeMirror.fromTextArea($("code"), {
+  mode: "python", theme: "material-darker", lineNumbers: true, indentUnit: 4,
+  tabSize: 4, indentWithTabs: false,
+  extraKeys: {
+    Tab: (cm) => cm.somethingSelected() ? cm.indentSelection("add") : cm.replaceSelection("    "),
+    "Ctrl-Enter": () => render(), "Cmd-Enter": () => render(),
+  },
+}) : plainEditor($("code"));
+
+// Fallback when the CodeMirror CDN can't be reached (offline, blocked network).
+function plainEditor(ta) {
+  ta.spellcheck = false;
+  ta.style.cssText = "width:100%;height:100%;resize:none;border:0;padding:12px;background:#212121;" +
+    "color:#eee;font:14px/1.5 ui-monospace,Consolas,monospace;tab-size:4;outline:none";
+  ta.addEventListener("keydown", (e) => {
+    if (e.key === "Enter" && (e.ctrlKey || e.metaKey)) { e.preventDefault(); render(); }
+    else if (e.key === "Tab") { e.preventDefault(); ta.setRangeText("    ", ta.selectionStart, ta.selectionEnd, "end"); }
+  });
+  return {
+    getValue: () => ta.value,
+    setValue: (v) => { ta.value = v; },
+    on: (_ev, fn) => ta.addEventListener("input", fn),
+  };
+}
+editor.setValue(store.get("code", STARTER));
+
+// Toggle groups
+const state = { quality: store.get("quality", "preview"), orientation: store.get("orientation", "landscape") };
+for (const group of ["quality", "orientation"]) {
+  const el = $(group);
+  const sync = () => el.querySelectorAll("button").forEach(b => b.classList.toggle("on", b.dataset.v === state[group]));
+  el.addEventListener("click", (e) => {
+    if (!e.target.dataset.v) return;
+    state[group] = e.target.dataset.v; store.set(group, state[group]); sync();
+  });
+  sync();
+}
+
+// Optional access token (only when the server has ACCESS_TOKEN set)
+let token = store.get("token", "");
+async function api(path, opts = {}) {
+  opts.headers = { ...(opts.headers || {}), "X-Access-Token": token };
+  let res = await fetch(path, opts);
+  if (res.status === 401) {
+    token = prompt("Access token for this sandbox:") || "";
+    store.set("token", token);
+    opts.headers["X-Access-Token"] = token;
+    res = await fetch(path, opts);
+  }
+  return res;
+}
+
+// Scene picker: refresh shortly after typing stops
+let sceneTimer;
+async function refreshScenes() {
+  store.set("code", editor.getValue());
+  const res = await api("/api/scenes", { method: "POST", headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ code: editor.getValue() }) });
+  if (!res.ok) return;
+  const { scenes } = await res.json();
+  const sel = $("scene"), prev = sel.value;
+  sel.innerHTML = "";
+  for (const s of scenes) sel.add(new Option(s, s));
+  if (scenes.includes(prev)) sel.value = prev;
+  sel.style.display = scenes.length > 1 ? "" : "none";
+}
+editor.on("change", () => { clearTimeout(sceneTimer); sceneTimer = setTimeout(refreshScenes, 600); });
+refreshScenes();
+
+function setStatus(text, cls = "") { const s = $("status"); s.textContent = text; s.className = cls; }
+
+let polling = null;
+async function render() {
+  if ($("render").disabled) return;
+  store.set("code", editor.getValue());
+  $("render").disabled = true;
+  $("download").style.display = "none";
+  setStatus("Submitting…");
+  clearTimeout(sceneTimer);
+  await refreshScenes();  // the picker may lag behind recent edits
+  const res = await api("/api/render", {
+    method: "POST", headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ code: editor.getValue(), scene: $("scene").value || "", ...state }),
+  });
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok) { setStatus(data.detail || `Error ${res.status}`, "err"); $("render").disabled = false; return; }
+  poll(data.job_id);
+}
+
+function poll(id) {
+  clearInterval(polling);
+  polling = setInterval(async () => {
+    const res = await api(`/api/jobs/${id}`);
+    if (!res.ok) { clearInterval(polling); setStatus("Lost track of the job.", "err"); $("render").disabled = false; return; }
+    const j = await res.json();
+    $("log").textContent = j.log;
+    if (j.status === "queued") setStatus(`Waiting in queue (#${j.queue_position})…`);
+    else if (j.status === "rendering") setStatus(`Rendering ${j.scene} (${j.quality}, ${j.orientation})… ${Math.round(j.elapsed)}s`);
+    else {
+      clearInterval(polling);
+      $("render").disabled = false;
+      if (j.status === "done") {
+        setStatus(`Done in ${j.elapsed}s`, "ok");
+        const q = token ? `?token=${encodeURIComponent(token)}` : "";
+        const url = `/api/jobs/${id}/video${q}`;
+        $("stage").innerHTML = `<video src="${url}" controls autoplay loop playsinline></video>`;
+        const dl = $("download");
+        dl.href = `${url}${q ? "&" : "?"}download=true`;
+        dl.style.display = "";
+      } else {
+        setStatus(j.error || "Render failed.", "err");
+        $("logBox").open = true;
+        const log = $("log"); log.scrollTop = log.scrollHeight;
+      }
+    }
+  }, 1000);
+}
+
+$("render").addEventListener("click", render);
+
+// Warn early if Docker or the image isn't ready
+api("/api/health").then(r => r.json()).then(h => {
+  if (!h.docker) setStatus("Docker isn't reachable. Start Docker Desktop, then reload.", "err");
+  else if (!h.image_pulled) setStatus(`Image not pulled yet. Run: docker pull ${h.image}`, "err");
+}).catch(() => {});
+</script>
+</body>
+</html>

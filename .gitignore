@@ -1,0 +1,6 @@
+jobs/
+media/
+.venv/
+__pycache__/
+*.pyc
+.env

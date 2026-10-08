@@ -1,0 +1,21 @@
+# Step 4: run the whole sandbox with `docker compose up -d --build`.
+# Works the same on your laptop and on the Oracle VM.
+services:
+  sandbox:
+    build: .
+    restart: unless-stopped
+    ports:
+      - "${BIND_ADDR:-127.0.0.1}:${PORT:-8000}:8000"
+    volumes:
+      # Lets the app start render containers on the host's Docker.
+      - /var/run/docker.sock:/var/run/docker.sock
+      # Mounted at the same absolute path inside and outside, so the paths the
+      # app hands to `docker run -v` also exist on the host.
+      - ${PWD}/jobs:${PWD}/jobs
+    environment:
+      JOBS_DIR: ${PWD}/jobs
+      HOST_JOBS_DIR: ${PWD}/jobs
+      ACCESS_TOKEN: ${ACCESS_TOKEN:-}
+      MAX_CONCURRENT_RENDERS: ${MAX_CONCURRENT_RENDERS:-1}
+      MEMORY_LIMIT: ${MEMORY_LIMIT:-2g}
+      CPU_LIMIT: ${CPU_LIMIT:-2}
